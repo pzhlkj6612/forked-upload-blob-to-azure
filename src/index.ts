@@ -38,12 +38,20 @@ async function run() {
       info('Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_TOKEN (your storage token)');
     }
     const files = await readdirRecursive(dir);
+    const totalFiles = files.length;
+    let completedFiles = 0;
+
+    info(`Found ${totalFiles} file(s) to upload. ${totalFiles} file(s) waiting for check.`);
 
     await Promise.all(files.map(async (filePath) => {
       let relativePath = relative(dir, filePath).replaceAll('\\', '/');
       if (relativePath.startsWith('/')) {
         relativePath = relativePath.substring(1);
       }
+
+      const remaining = totalFiles - completedFiles;
+      info(`[Waiting for check] ${relativePath} (${remaining} file(s) in queue)`);
+
       const fileStat = await stat(filePath);
 
       const options: BlockBlobUploadOptions = {
@@ -59,6 +67,9 @@ async function run() {
       await client.upload(() => createReadStream(filePath),
         fileStat.size,
         options);
+
+      completedFiles++;
+      info(`Completed ${relativePath} (${completedFiles}/${totalFiles})`);
     }));
   } catch (error) {
     console.error(error)
