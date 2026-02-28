@@ -51557,7 +51557,7 @@ async function run() {
     const files = await readdirRecursive(dir);
     const totalFiles = files.length;
     let completedFiles = 0;
-    (0, import_core.info)(`Found ${totalFiles} file(s) to upload. ${totalFiles} file(s) waiting for check.`);
+    (0, import_core.info)(`Found ${totalFiles} file(s) to upload.`);
     for (const filePath of files) {
       let relativePath = (0, import_path.relative)(dir, filePath).replaceAll("\\", "/");
       if (relativePath.startsWith("/")) {

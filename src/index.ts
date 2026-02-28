@@ -41,7 +41,7 @@ async function run() {
     const totalFiles = files.length;
     let completedFiles = 0;
 
-    info(`Found ${totalFiles} file(s) to upload. ${totalFiles} file(s) waiting for check.`);
+    info(`Found ${totalFiles} file(s) to upload.`);
 
     for (const filePath of files) {
       let relativePath = relative(dir, filePath).replaceAll('\\', '/');
