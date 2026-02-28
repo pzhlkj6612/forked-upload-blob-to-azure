@@ -51558,7 +51558,7 @@ async function run() {
     const totalFiles = files.length;
     let completedFiles = 0;
     (0, import_core.info)(`Found ${totalFiles} file(s) to upload. ${totalFiles} file(s) waiting for check.`);
-    await Promise.all(files.map(async (filePath) => {
+    for (const filePath of files) {
       let relativePath = (0, import_path.relative)(dir, filePath).replaceAll("\\", "/");
       if (relativePath.startsWith("/")) {
         relativePath = relativePath.substring(1);
@@ -51581,7 +51581,7 @@ async function run() {
       );
       completedFiles++;
       (0, import_core.info)(`Completed ${relativePath} (${completedFiles}/${totalFiles})`);
-    }));
+    }
   } catch (error) {
     console.error(error);
     (0, import_core.setFailed)(error.message);
