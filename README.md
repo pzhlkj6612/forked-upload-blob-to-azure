@@ -15,9 +15,7 @@ Also, you might want to get your storage account key in azure portal, and put it
 - `container`: The container in provided azure storage
 - `directory`: The directory containing your files to upload to azure storage container.
 
-This workflow will `readdir` to your input `directory`, and it will upload all the file with its original name to the azure storage container. It will skip the directory inside the directory. So, no nested upload supported now.
-
-If you really want something like glob pattern matching to supporte nested file scan. Let me know or make the PR.
+This workflow will `readdir` to your input `directory`, and it will upload all the file with its original name to the azure storage container. Files in sub-directories will also be uploaded.
 
 ### Environment Variable Requirement
 
@@ -54,7 +52,7 @@ jobs:
           AZURE_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY }}
 ```
 
-This will upload all the files under `./build` directory under your repository. It will skip to dive into the nested directory.
+This will upload all the files under `./build` directory under your repository.
 
 ## Contributing
 
