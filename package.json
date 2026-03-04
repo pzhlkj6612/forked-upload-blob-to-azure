@@ -5,14 +5,14 @@
   },
   "bundleDependencies": false,
   "dependencies": {
-    "@actions/core": "^2.0.2",
+    "@actions/core": "^3.0.0",
     "@azure/storage-blob": "^12.31.0"
   },
   "deprecated": false,
   "description": "Github action to upload blob to azure storage",
   "devDependencies": {
-    "@types/node": "~20",
-    "esbuild": "^0.25.0",
+    "@types/node": "~24",
+    "esbuild": "^0.27.3",
     "typescript": "^5.9.3"
   },
   "license": "MIT",
