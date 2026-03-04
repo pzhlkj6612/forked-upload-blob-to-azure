@@ -12,7 +12,7 @@ inputs:
     description: 'The directory to upload. It will list file recursively in this diectionary and upload to azure storage blob'
     required: true
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
 branding:
   icon: 'tag'
