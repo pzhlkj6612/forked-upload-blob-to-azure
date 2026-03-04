@@ -27310,6 +27310,7 @@ function normalizeProcessEntities(value) {
       maxExpansionDepth: 10,
       maxTotalExpansions: 1e3,
       maxExpandedLength: 1e5,
+      maxEntityCount: 100,
       allowedTags: null,
       tagFilter: null
     };
@@ -27322,6 +27323,7 @@ function normalizeProcessEntities(value) {
       maxExpansionDepth: value.maxExpansionDepth ?? 10,
       maxTotalExpansions: value.maxTotalExpansions ?? 1e3,
       maxExpandedLength: value.maxExpandedLength ?? 1e5,
+      maxEntityCount: value.maxEntityCount ?? 100,
       allowedTags: value.allowedTags ?? null,
       tagFilter: value.tagFilter ?? null
     };
@@ -27381,6 +27383,7 @@ var _DocTypeReader = class _DocTypeReader {
   }
   readDocType(xmlData, i) {
     const entities = /* @__PURE__ */ Object.create(null);
+    let entityCount = 0;
     if (xmlData[i + 3] === "O" && xmlData[i + 4] === "C" && xmlData[i + 5] === "T" && xmlData[i + 6] === "Y" && xmlData[i + 7] === "P" && xmlData[i + 8] === "E") {
       i = i + 9;
       let angleBracketsCount = 1;
@@ -27393,11 +27396,17 @@ var _DocTypeReader = class _DocTypeReader {
             let entityName, val;
             [entityName, val, i] = this.readEntityExp(xmlData, i + 1, this.suppressValidationErr);
             if (val.indexOf("&") === -1) {
+              if (this.options.enabled !== false && this.options.maxEntityCount && entityCount >= this.options.maxEntityCount) {
+                throw new Error(
+                  `Entity count (${entityCount + 1}) exceeds maximum allowed (${this.options.maxEntityCount})`
+                );
+              }
               const escaped = entityName.replace(/[.\-+*:]/g, "\\.");
               entities[entityName] = {
                 regx: RegExp(`&${escaped};`, "g"),
                 val
               };
+              entityCount++;
             }
           } else if (hasBody && hasSeq(xmlData, "!ELEMENT", i)) {
             i += 8;
@@ -51548,15 +51557,16 @@ async function run() {
     const accountKey = process.env.AZURE_ACCOUNT_KEY;
     const sas = process.env.AZURE_STORAGE_SAS;
     let credit;
+    let queryString = "";
     if (typeof accountKey === "string") {
       credit = new StorageSharedKeyCredential(account, accountKey);
       (0, import_core.info)("Found and use SharedKeyCredential (accountKey)");
     } else if (typeof sas === "string") {
       credit = new AnonymousCredential();
-      (0, import_core.info)("Found and use SAS token");
+      queryString = sas.startsWith("?") ? sas : `?${sas}`;
+      (0, import_core.info)("Found and use SAS (Shared Access Signatures) token");
     } else {
-      credit = new AnonymousCredential();
-      (0, import_core.info)("Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_SAS (your SAS token)");
+      throw new Error("Not found any credential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_SAS (your SAS token)");
     }
     const files = await readdirRecursive(dir);
     await Promise.all(files.map(async (filePath) => {
@@ -51571,9 +51581,7 @@ async function run() {
       if (relativePath.endsWith("yml")) {
         options.blobHTTPHeaders.blobContentType = "text/x-yaml";
       }
-      const sasQuery = sas ? sas.startsWith("?") ? sas : `?${sas}` : "";
-      const blobUrl = `https://${account}.blob.core.windows.net/${container}/${relativePath}${sasQuery}`;
-      const client = new BlockBlobClient(blobUrl, credit);
+      const client = new BlockBlobClient(`https://${account}.blob.core.windows.net/${container}/${relativePath}${queryString}`, credit);
       (0, import_core.info)(`Upload ${relativePath}`);
       await client.upload(
         () => (0, import_fs.createReadStream)(filePath),

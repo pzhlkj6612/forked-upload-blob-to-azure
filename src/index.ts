@@ -31,15 +31,16 @@ async function run() {
     const sas = process.env.AZURE_STORAGE_SAS;
 
     let credit: StorageSharedKeyCredential | AnonymousCredential;
+    let queryString: string = '';
     if (typeof accountKey === 'string') {
       credit = new StorageSharedKeyCredential(account, accountKey);
       info('Found and use SharedKeyCredential (accountKey)');
     } else if (typeof sas === 'string') {
       credit = new AnonymousCredential();
-      info('Found and use SAS token');
+      queryString = sas.startsWith('?') ? sas : `?${sas}`
+      info('Found and use SAS (Shared Access Signatures) token');
     } else {
-      credit = new AnonymousCredential();
-      info('Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_SAS (your SAS token)');
+      throw new Error('Not found any credential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_SAS (your SAS token)');
     }
     const files = await readdirRecursive(dir);
 
@@ -57,9 +58,7 @@ async function run() {
       if (relativePath.endsWith("yml")) { // if the file is the yml file use yml format
         options.blobHTTPHeaders!.blobContentType = 'text/x-yaml';
       }
-      const sasQuery = sas ? (sas.startsWith('?') ? sas : `?${sas}`) : '';
-      const blobUrl = `https://${account}.blob.core.windows.net/${container}/${relativePath}${sasQuery}`;
-      const client = new BlockBlobClient(blobUrl, credit)
+      const client = new BlockBlobClient(`https://${account}.blob.core.windows.net/${container}/${relativePath}${queryString}`, credit)
       info(`Upload ${relativePath}`);
 
       await client.upload(() => createReadStream(filePath),
