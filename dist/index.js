@@ -78187,13 +78187,18 @@ async function run() {
     const container = (0, import_core.getInput)("container", { required: true });
     const dir = (0, import_core.getInput)("directory", { required: true });
     const accountKey = process.env.AZURE_ACCOUNT_KEY;
+    const sas = process.env.AZURE_STORAGE_SAS;
     let credit;
+    let queryString = "";
     if (typeof accountKey === "string") {
       credit = new import_storage_blob.StorageSharedKeyCredential(account, accountKey);
       (0, import_core.info)("Found and use SharedKeyCredential (accountKey)");
-    } else {
+    } else if (typeof sas === "string") {
       credit = new import_storage_blob.AnonymousCredential();
-      (0, import_core.info)("Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_TOKEN (your storage token)");
+      queryString = sas.startsWith("?") ? sas : `?${sas}`;
+      (0, import_core.info)("Found and use SAS (Shared Access Signatures) token");
+    } else {
+      throw new Error("Not found any credential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_SAS (your SAS token)");
     }
     const files = await readdirRecursive(dir);
     await Promise.all(files.map(async (filePath) => {
@@ -78208,7 +78213,7 @@ async function run() {
       if (relativePath.endsWith("yml")) {
         options.blobHTTPHeaders.blobContentType = "text/x-yaml";
       }
-      const client = new import_storage_blob.BlockBlobClient(`https://${account}.blob.core.windows.net/${container}/${relativePath}`, credit);
+      const client = new import_storage_blob.BlockBlobClient(`https://${account}.blob.core.windows.net/${container}/${relativePath}${queryString}`, credit);
       (0, import_core.info)(`Upload ${relativePath}`);
       await client.upload(
         () => (0, import_fs.createReadStream)(filePath),

@@ -22,8 +22,7 @@ If you really want something like glob pattern matching to supporte nested file 
 ### Environment Variable Requirement
 
 - `AZURE_ACCOUNT_KEY`: You azure storage account key. You can found this in `Access keys` page of your storage account.
-
-If this is not provided, it will use [AnonymousCredential](https://github.com/Azure/azure-sdk-for-js/blob/master/sdk/storage/storage-blob/src/credentials/AnonymousCredential.ts)
+- `AZURE_STORAGE_SAS`: Your azure storage SAS token. You can generate this in the `Shared access signature` page of your storage account or the `Shared access tokens` page of storage services.
 
 ### Example workflow - upload your build to azure storage
 
