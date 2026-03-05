@@ -12,6 +12,7 @@ permissions:
 env:
   AZURITE_ACCOUNT: devstoreaccount1
   AZURITE_KEY: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+  TEST_UPLOAD_DIR: /tmp/test-upload-dir
 
 jobs:
   test:
@@ -32,52 +33,14 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Generate test data
+        run: .github/resources/generate-test-data.sh "$TEST_UPLOAD_DIR"
+
       - name: Setup Azurite with HTTPS
-        run: |
-          # Generate self-signed cert for the hostname the action will connect to
-          openssl req -x509 -nodes -days 30 -newkey rsa:2048 \
-            -keyout /tmp/azurite-key.pem -out /tmp/azurite-cert.pem \
-            -subj "/CN=${AZURITE_ACCOUNT}.blob.core.windows.net"
-
-          # Route the hostname to localhost
-          echo "127.0.0.1 ${AZURITE_ACCOUNT}.blob.core.windows.net" | sudo tee -a /etc/hosts
-
-          # Start Azurite blob service on port 443 (default HTTPS) with HTTPS
-          sudo env "PATH=$PATH" npx azurite-blob \
-            --blobHost 0.0.0.0 --blobPort 443 \
-            --cert /tmp/azurite-cert.pem --key /tmp/azurite-key.pem \
-            --loose --silent &
-
-          # Wait for Azurite to be ready
-          for i in $(seq 1 10); do
-            if curl -sk -o /dev/null -w '' "https://${AZURITE_ACCOUNT}.blob.core.windows.net/" 2>/dev/null; then
-              echo "Azurite is ready"
-              exit 0
-            fi
-            echo "Waiting for Azurite... ($i)"
-            sleep 1
-          done
-          echo "Azurite failed to start"
-          exit 1
+        run: .github/resources/setup-azurite.sh
 
       - name: Create test containers
-        run: |
-          node -e "
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-            const { BlobServiceClient, StorageSharedKeyCredential } = require('@azure/storage-blob');
-            const cred = new StorageSharedKeyCredential(
-              process.env.AZURITE_ACCOUNT,
-              process.env.AZURITE_KEY
-            );
-            const svc = new BlobServiceClient(
-              'https://' + process.env.AZURITE_ACCOUNT + '.blob.core.windows.net',
-              cred
-            );
-            Promise.all([
-              svc.getContainerClient('test-sharedkey').create(),
-              svc.getContainerClient('test-anon').create(),
-            ]).then(() => console.log('Containers created'));
-          "
+        run: .github/resources/create-containers.sh test-sharedkey test-anon
 
       # ── Test 1: SharedKey authentication ─────────────────────────────
       - name: "Test: Upload with SharedKey credential"
@@ -85,68 +48,13 @@ jobs:
         with:
           account: ${{ env.AZURITE_ACCOUNT }}
           container: test-sharedkey
-          directory: tests/fixtures/test-upload-dir
+          directory: ${{ env.TEST_UPLOAD_DIR }}
         env:
           AZURE_ACCOUNT_KEY: ${{ env.AZURITE_KEY }}
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: "Verify: SharedKey uploads"
-        run: |
-          node -e "
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-            const { BlobServiceClient, StorageSharedKeyCredential } = require('@azure/storage-blob');
-            const cred = new StorageSharedKeyCredential(
-              process.env.AZURITE_ACCOUNT,
-              process.env.AZURITE_KEY
-            );
-            const svc = new BlobServiceClient(
-              'https://' + process.env.AZURITE_ACCOUNT + '.blob.core.windows.net',
-              cred
-            );
-            const container = svc.getContainerClient('test-sharedkey');
-            (async () => {
-              // Verify all expected blobs exist
-              const blobs = [];
-              for await (const b of container.listBlobsFlat()) blobs.push(b.name);
-              blobs.sort();
-              const expected = [
-                'another-subdir/data.yml',
-                'config.yml',
-                'root-file.txt',
-                'subdir/file-in-subdir.txt',
-                'subdir/nested/deep-file.json',
-              ];
-              console.log('Found blobs:', blobs);
-              if (JSON.stringify(blobs) !== JSON.stringify(expected)) {
-                console.error('FAIL: blob list mismatch. Expected:', expected);
-                process.exit(1);
-              }
-
-              // Verify file content
-              const dl = await container.getBlobClient('root-file.txt').download();
-              const chunks = [];
-              for await (const c of dl.readableStreamBody) chunks.push(c);
-              const content = Buffer.concat(chunks).toString();
-              if (!content.includes('Hello from root level')) {
-                console.error('FAIL: root-file.txt content mismatch');
-                process.exit(1);
-              }
-
-              // Verify yml content-type
-              const props = await container.getBlobClient('config.yml').getProperties();
-              if (props.contentType !== 'text/x-yaml') {
-                console.error('FAIL: config.yml content-type is', props.contentType, 'expected text/x-yaml');
-                process.exit(1);
-              }
-              const props2 = await container.getBlobClient('another-subdir/data.yml').getProperties();
-              if (props2.contentType !== 'text/x-yaml') {
-                console.error('FAIL: data.yml content-type is', props2.contentType, 'expected text/x-yaml');
-                process.exit(1);
-              }
-
-              console.log('PASS: All SharedKey upload verifications succeeded');
-            })();
-          "
+        run: .github/resources/verify-sharedkey-uploads.sh test-sharedkey "$TEST_UPLOAD_DIR"
 
       # ── Test 2: Anonymous credential (should fail) ───────────────────
       - name: "Test: Upload with Anonymous credential (expect failure)"
@@ -156,16 +64,10 @@ jobs:
         with:
           account: ${{ env.AZURITE_ACCOUNT }}
           container: test-anon
-          directory: tests/fixtures/test-upload-dir
+          directory: ${{ env.TEST_UPLOAD_DIR }}
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
           # No AZURE_ACCOUNT_KEY → action falls back to AnonymousCredential
 
       - name: "Verify: Anonymous upload was rejected"
-        run: |
-          if [ "${{ steps.anon-upload.outcome }}" = "failure" ]; then
-            echo "PASS: Anonymous upload correctly failed"
-          else
-            echo "FAIL: Anonymous upload should have failed but succeeded"
-            exit 1
-          fi
+        run: .github/resources/verify-anon-upload.sh "${{ steps.anon-upload.outcome }}"
