@@ -19308,7 +19308,7 @@ var require_core = __commonJS({
     }
     __name(getMultilineInput, "getMultilineInput");
     exports2.getMultilineInput = getMultilineInput;
-    function getBooleanInput(name, options) {
+    function getBooleanInput2(name, options) {
       const trueValue = ["true", "True", "TRUE"];
       const falseValue = ["false", "False", "FALSE"];
       const val = getInput2(name, options);
@@ -19319,8 +19319,8 @@ var require_core = __commonJS({
       throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
-    __name(getBooleanInput, "getBooleanInput");
-    exports2.getBooleanInput = getBooleanInput;
+    __name(getBooleanInput2, "getBooleanInput");
+    exports2.getBooleanInput = getBooleanInput2;
     function setOutput(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
@@ -78186,6 +78186,7 @@ async function run() {
     const account = (0, import_core.getInput)("account", { required: true });
     const container = (0, import_core.getInput)("container", { required: true });
     const dir = (0, import_core.getInput)("directory", { required: true });
+    const progress = (0, import_core.getBooleanInput)("progress");
     const accountKey = process.env.AZURE_ACCOUNT_KEY;
     let credit;
     if (typeof accountKey === "string") {
@@ -78203,7 +78204,10 @@ async function run() {
       }
       const fileStat = await (0, import_promises.stat)(filePath);
       const options = {
-        blobHTTPHeaders: {}
+        blobHTTPHeaders: {},
+        onProgress: progress ? (progress2) => {
+          (0, import_core.info)(`-> ${progress2.loadedBytes} / ${fileStat.size} bytes`);
+        } : void 0
       };
       if (relativePath.endsWith("yml")) {
         options.blobHTTPHeaders.blobContentType = "text/x-yaml";

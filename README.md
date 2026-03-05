@@ -14,6 +14,7 @@ Also, you might want to get your storage account key in azure portal, and put it
 - `account`: The azure storage account name
 - `container`: The container in provided azure storage
 - `directory`: The directory containing your files to upload to azure storage container.
+- `progress`: If true, show upload progress.
 
 This workflow will `readdir` to your input `directory`, and it will upload all the file with its original name to the azure storage container. It will skip the directory inside the directory. So, no nested upload supported now.
 

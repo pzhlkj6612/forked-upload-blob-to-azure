@@ -11,6 +11,10 @@ inputs:
   directory:
     description: 'The directory to upload. It will list file recursively in this diectionary and upload to azure storage blob'
     required: true
+  progress:
+    description: 'Show upload progress'
+    required: false
+    default: false
 runs:
   using: 'node20'
   main: 'dist/index.js'

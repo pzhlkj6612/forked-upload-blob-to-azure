@@ -1,4 +1,4 @@
-import { getInput, info, setFailed } from '@actions/core';
+import { getBooleanInput, getInput, info, setFailed } from '@actions/core';
 import { AnonymousCredential, BlockBlobClient, BlockBlobUploadOptions, StorageSharedKeyCredential } from '@azure/storage-blob';
 import { createReadStream } from 'fs';
 import { readdir, stat } from "fs/promises";
@@ -26,6 +26,7 @@ async function run() {
     const account = getInput('account', { required: true });
     const container = getInput('container', { required: true });
     const dir = getInput('directory', { required: true });
+    const progress = getBooleanInput('progress');
 
     const accountKey = process.env.AZURE_ACCOUNT_KEY;
 
@@ -49,6 +50,9 @@ async function run() {
       const options: BlockBlobUploadOptions = {
         blobHTTPHeaders: {
         },
+        onProgress: progress ? (progress) => {
+          info(`-> ${progress.loadedBytes} / ${fileStat.size} bytes`);
+        } : undefined,
       };
       if (relativePath.endsWith("yml")) { // if the file is the yml file use yml format
         options.blobHTTPHeaders!.blobContentType = 'text/x-yaml';
