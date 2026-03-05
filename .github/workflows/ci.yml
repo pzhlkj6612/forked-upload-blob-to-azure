@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -29,7 +32,17 @@ jobs:
         run: npx azurite-blob --silent --blobPort 10000 --loose &
 
       - name: Wait for Azurite
-        run: sleep 3
+        run: |
+          for i in $(seq 1 10); do
+            if curl -s -o /dev/null -w '' http://127.0.0.1:10000/ 2>/dev/null; then
+              echo "Azurite is ready"
+              exit 0
+            fi
+            echo "Waiting for Azurite... ($i)"
+            sleep 1
+          done
+          echo "Azurite failed to start"
+          exit 1
 
       - name: Run tests
         run: pnpm test
