@@ -73541,7 +73541,7 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
        *
        */
       getBlockBlobClient() {
-        return new BlockBlobClient(this.url, this.pipeline);
+        return new BlockBlobClient2(this.url, this.pipeline);
       }
       /**
        * Creates a PageBlobClient object.
@@ -75197,7 +75197,7 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
       }
     };
     __name(_BlockBlobClient, "BlockBlobClient");
-    var BlockBlobClient = _BlockBlobClient;
+    var BlockBlobClient2 = _BlockBlobClient;
     var _PageBlobClient = class _PageBlobClient extends BlobClient {
       constructor(urlOrConnectionString, credentialOrPipelineOrContainerName, blobNameOrOptions, options) {
         let pipeline;
@@ -76254,7 +76254,7 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
        * ```
        */
       getBlockBlobClient(blobName) {
-        return new BlockBlobClient(appendToURLPath(this.url, encodeURIComponent(blobName)), this.pipeline);
+        return new BlockBlobClient2(appendToURLPath(this.url, encodeURIComponent(blobName)), this.pipeline);
       }
       /**
        * Creates a {@link PageBlobClient}
@@ -78088,7 +78088,7 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
       }
     };
     __name(_BlobServiceClient, "BlobServiceClient");
-    var BlobServiceClient2 = _BlobServiceClient;
+    var BlobServiceClient = _BlobServiceClient;
     Object.defineProperty(exports2, "BaseRequestPolicy", {
       enumerable: true,
       get: function() {
@@ -78136,8 +78136,8 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
     exports2.BlobClient = BlobClient;
     exports2.BlobLeaseClient = BlobLeaseClient;
     exports2.BlobSASPermissions = BlobSASPermissions;
-    exports2.BlobServiceClient = BlobServiceClient2;
-    exports2.BlockBlobClient = BlockBlobClient;
+    exports2.BlobServiceClient = BlobServiceClient;
+    exports2.BlockBlobClient = BlockBlobClient2;
     exports2.ContainerClient = ContainerClient;
     exports2.ContainerSASPermissions = ContainerSASPermissions;
     exports2.Credential = Credential;
@@ -78161,12 +78161,6 @@ ${key}:${decodeURIComponent(lowercaseQueries[key])}`;
 });
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
-  readdirRecursive: () => readdirRecursive,
-  uploadBlobs: () => uploadBlobs
-});
-module.exports = __toCommonJS(src_exports);
 var import_core = __toESM(require_core());
 var import_storage_blob = __toESM(require_dist8());
 var import_fs = require("fs");
@@ -78187,57 +78181,41 @@ async function readdirRecursive(dir) {
   return result;
 }
 __name(readdirRecursive, "readdirRecursive");
-async function uploadBlobs(config) {
-  const { account, container, directory } = config;
-  const blobEndpoint = config.blobEndpoint || `https://${account}.blob.core.windows.net`;
-  let serviceClient;
-  if (config.connectionString) {
-    serviceClient = import_storage_blob.BlobServiceClient.fromConnectionString(config.connectionString);
-    (0, import_core.info)("Using connection string for authentication");
-  } else if (config.accountKey) {
-    const credential = new import_storage_blob.StorageSharedKeyCredential(account, config.accountKey);
-    serviceClient = new import_storage_blob.BlobServiceClient(blobEndpoint, credential);
-    (0, import_core.info)("Using SharedKeyCredential (accountKey)");
-  } else {
-    serviceClient = new import_storage_blob.BlobServiceClient(blobEndpoint, new import_storage_blob.AnonymousCredential());
-    (0, import_core.info)("Using AnonymousCredential");
-  }
-  const containerClient = serviceClient.getContainerClient(container);
-  const files = await readdirRecursive(directory);
-  await Promise.all(files.map(async (filePath) => {
-    let relativePath = (0, import_path.relative)(directory, filePath).replaceAll("\\", "/");
-    if (relativePath.startsWith("/")) {
-      relativePath = relativePath.substring(1);
-    }
-    const fileStat = await (0, import_promises.stat)(filePath);
-    const options = {
-      blobHTTPHeaders: {}
-    };
-    if (relativePath.endsWith("yml")) {
-      options.blobHTTPHeaders.blobContentType = "text/x-yaml";
-    }
-    const blobClient = containerClient.getBlockBlobClient(relativePath);
-    (0, import_core.info)(`Upload ${relativePath}`);
-    await blobClient.upload(
-      () => (0, import_fs.createReadStream)(filePath),
-      fileStat.size,
-      options
-    );
-  }));
-}
-__name(uploadBlobs, "uploadBlobs");
 async function run() {
   try {
     const account = (0, import_core.getInput)("account", { required: true });
     const container = (0, import_core.getInput)("container", { required: true });
     const dir = (0, import_core.getInput)("directory", { required: true });
-    await uploadBlobs({
-      account,
-      container,
-      directory: dir,
-      connectionString: process.env.AZURE_CONNECTION_STRING,
-      accountKey: process.env.AZURE_ACCOUNT_KEY
-    });
+    const accountKey = process.env.AZURE_ACCOUNT_KEY;
+    let credit;
+    if (typeof accountKey === "string") {
+      credit = new import_storage_blob.StorageSharedKeyCredential(account, accountKey);
+      (0, import_core.info)("Found and use SharedKeyCredential (accountKey)");
+    } else {
+      credit = new import_storage_blob.AnonymousCredential();
+      (0, import_core.info)("Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_TOKEN (your storage token)");
+    }
+    const files = await readdirRecursive(dir);
+    await Promise.all(files.map(async (filePath) => {
+      let relativePath = (0, import_path.relative)(dir, filePath).replaceAll("\\", "/");
+      if (relativePath.startsWith("/")) {
+        relativePath = relativePath.substring(1);
+      }
+      const fileStat = await (0, import_promises.stat)(filePath);
+      const options = {
+        blobHTTPHeaders: {}
+      };
+      if (relativePath.endsWith("yml")) {
+        options.blobHTTPHeaders.blobContentType = "text/x-yaml";
+      }
+      const client = new import_storage_blob.BlockBlobClient(`https://${account}.blob.core.windows.net/${container}/${relativePath}`, credit);
+      (0, import_core.info)(`Upload ${relativePath}`);
+      await client.upload(
+        () => (0, import_fs.createReadStream)(filePath),
+        fileStat.size,
+        options
+      );
+    }));
   } catch (error) {
     console.error(error);
     (0, import_core.setFailed)(error.message);
@@ -78247,11 +78225,6 @@ __name(run, "run");
 if (require.main === module) {
   run();
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  readdirRecursive,
-  uploadBlobs
-});
 /*! Bundled license information:
 
 undici/lib/fetch/body.js:
