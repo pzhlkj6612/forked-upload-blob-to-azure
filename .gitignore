@@ -1,1 +1,4 @@
 /node_modules
+__azurite_db_*
+__blobstorage__/
+AzuriteConfig
