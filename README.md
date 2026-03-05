@@ -22,6 +22,10 @@ If you really want something like glob pattern matching to supporte nested file 
 ### Environment Variable Requirement
 
 - `AZURE_ACCOUNT_KEY`: You azure storage account key. You can found this in `Access keys` page of your storage account.
+- `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, and `AZURE_CLIENT_SECRET`: The details of an application service principal and its client secret (application password) from Microsoft Entra ID that can be used with Azure role-based access control (RBAC). The service principal needs to be assigned `Storage Blob Data Contributor` role or custom ones with similar required permissions. Please refer to:
+  - [Azure built-in roles for blobs § Authorize access to blobs using Microsoft Entra ID - Azure Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/authorize-access-azure-active-directory).
+  - [Add and manage app credentials in Microsoft Entra ID - Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-credentials?tabs=client-secret), search "Add a client secret" in it.
+  - [Assign a role to the application § Register a Microsoft Entra app and create a service principal - Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/howto-create-service-principal-portal#assign-a-role-to-the-application).
 
 If this is not provided, it will use [AnonymousCredential](https://github.com/Azure/azure-sdk-for-js/blob/master/sdk/storage/storage-blob/src/credentials/AnonymousCredential.ts)
 

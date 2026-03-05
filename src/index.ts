@@ -1,4 +1,5 @@
 import { getInput, info, setFailed } from '@actions/core';
+import { ClientSecretCredential } from "@azure/identity";
 import { AnonymousCredential, BlockBlobClient, BlockBlobUploadOptions, StorageSharedKeyCredential } from '@azure/storage-blob';
 import { createReadStream } from 'fs';
 import { readdir, stat } from "fs/promises";
@@ -28,11 +29,17 @@ async function run() {
     const dir = getInput('directory', { required: true });
 
     const accountKey = process.env.AZURE_ACCOUNT_KEY;
+    const tenantId = process.env.AZURE_TENANT_ID;
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const clientSecret = process.env.AZURE_CLIENT_SECRET;
 
-    let credit: StorageSharedKeyCredential | AnonymousCredential;
+    let credit: StorageSharedKeyCredential | AnonymousCredential | ClientSecretCredential;
     if (typeof accountKey === 'string') {
       credit = new StorageSharedKeyCredential(account, accountKey);
       info('Found and use SharedKeyCredential (accountKey)');
+    } else if (typeof tenantId === 'string' && typeof clientId === 'string' && typeof clientSecret === 'string') {
+      credit = new ClientSecretCredential(tenantId, clientId, clientSecret);
+      info('Found and use ClientSecretCredential (tenantId, clientId, clientSecret)');
     } else {
       credit = new AnonymousCredential();
       info('Not found any credential. Use AnonymousCredential. If you want assign credential, please assign env variable AZURE_ACCOUNT_KEY (your storage account key) or AZURE_STORAGE_TOKEN (your storage token)');
