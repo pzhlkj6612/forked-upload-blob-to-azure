@@ -34,13 +34,17 @@ jobs:
         run: pnpm build
 
       - name: Generate test data
-        run: .github/resources/generate-test-data.sh "$TEST_UPLOAD_DIR"
+        run: node .github/resources/generate-test-data.js "$TEST_UPLOAD_DIR"
 
       - name: Setup Azurite with HTTPS
-        run: .github/resources/setup-azurite.sh
+        run: node .github/resources/setup-azurite.js
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: Create test containers
-        run: .github/resources/create-containers.sh test-sharedkey test-anon
+        run: node .github/resources/create-containers.js test-sharedkey test-anon
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       # ── Test 1: SharedKey authentication ─────────────────────────────
       - name: "Test: Upload with SharedKey credential"
@@ -54,7 +58,9 @@ jobs:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: "Verify: SharedKey uploads"
-        run: .github/resources/verify-sharedkey-uploads.sh test-sharedkey "$TEST_UPLOAD_DIR"
+        run: node .github/resources/verify-sharedkey-uploads.js test-sharedkey "$TEST_UPLOAD_DIR"
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       # ── Test 2: Anonymous credential (should fail) ───────────────────
       - name: "Test: Upload with Anonymous credential (expect failure)"
@@ -70,4 +76,4 @@ jobs:
           # No AZURE_ACCOUNT_KEY → action falls back to AnonymousCredential
 
       - name: "Verify: Anonymous upload was rejected"
-        run: .github/resources/verify-anon-upload.sh "${{ steps.anon-upload.outcome }}"
+        run: node .github/resources/verify-anon-upload.js "${{ steps.anon-upload.outcome }}"

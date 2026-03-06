@@ -1,12 +1,22 @@
 // Create test containers in Azurite.
 //
-// Required env: AZURITE_ACCOUNT, AZURITE_KEY, CONTAINERS (JSON array of names)
+// Usage: node create-containers.js <container1> [container2] ...
+// Required env: AZURITE_ACCOUNT, AZURITE_KEY
 
 const { BlobServiceClient, StorageSharedKeyCredential } = require("@azure/storage-blob");
 
 const account = process.env.AZURITE_ACCOUNT;
 const key = process.env.AZURITE_KEY;
-const containers = JSON.parse(process.env.CONTAINERS);
+if (!account || !key) {
+  console.error("AZURITE_ACCOUNT and AZURITE_KEY must be set");
+  process.exit(1);
+}
+
+const containers = process.argv.slice(2);
+if (containers.length === 0) {
+  console.error("Usage: node create-containers.js <container1> [container2] ...");
+  process.exit(1);
+}
 
 const cred = new StorageSharedKeyCredential(account, key);
 const svc = new BlobServiceClient(

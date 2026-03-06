@@ -1,8 +1,8 @@
 // Verify blobs uploaded via SharedKey authentication.
 // Checks: blob list, file content, yml content-type headers.
 //
-// Required env: AZURITE_ACCOUNT, AZURITE_KEY, VERIFY_CONTAINER,
-//               VERIFY_SOURCE_DIR, VERIFY_EXPECTED (JSON array)
+// Usage: node verify-sharedkey-uploads.js <container> <source-dir>
+// Required env: AZURITE_ACCOUNT, AZURITE_KEY
 
 const { BlobServiceClient, StorageSharedKeyCredential } = require("@azure/storage-blob");
 const fs = require("fs");
@@ -10,21 +10,45 @@ const path = require("path");
 
 const account = process.env.AZURITE_ACCOUNT;
 const key = process.env.AZURITE_KEY;
+if (!account || !key) {
+  console.error("AZURITE_ACCOUNT and AZURITE_KEY must be set");
+  process.exit(1);
+}
+
+const containerName = process.argv[2];
+const sourceDir = process.argv[3];
+if (!containerName || !sourceDir) {
+  console.error("Usage: node verify-sharedkey-uploads.js <container> <source-dir>");
+  process.exit(1);
+}
+
+// Recursively collect all files relative to sourceDir
+function walkDir(dir, base, results) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = path.join(base, entry.name);
+    if (entry.isDirectory()) {
+      walkDir(path.join(dir, entry.name), rel, results);
+    } else {
+      results.push(rel);
+    }
+  }
+  return results;
+}
+
+const expected = walkDir(sourceDir, "", []).sort();
+
 const cred = new StorageSharedKeyCredential(account, key);
 const svc = new BlobServiceClient(
   "https://" + account + ".blob.core.windows.net",
   cred
 );
-const container = svc.getContainerClient(process.env.VERIFY_CONTAINER);
-const sourceDir = process.env.VERIFY_SOURCE_DIR;
-const expected = JSON.parse(process.env.VERIFY_EXPECTED);
+const container = svc.getContainerClient(containerName);
 
 (async () => {
   // Verify all expected blobs exist
   const blobs = [];
   for await (const b of container.listBlobsFlat()) blobs.push(b.name);
   blobs.sort();
-  expected.sort();
   console.log("Found blobs:", blobs);
   console.log("Expected:   ", expected);
   if (JSON.stringify(blobs) !== JSON.stringify(expected)) {
