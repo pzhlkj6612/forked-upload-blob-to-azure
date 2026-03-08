@@ -10,21 +10,23 @@ permissions:
   contents: read
 
 env:
-  AZURITE_ACCOUNT: devstoreaccount1
-  AZURITE_KEY: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+  AZURITE_ACCOUNT: storage_account
+  AZURITE_KEY: "c3RvcmFnZV9rZXk="
   TEST_UPLOAD_DIR: /tmp/test-upload-dir
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 18
           cache: pnpm
 
       - name: Install dependencies
@@ -37,43 +39,43 @@ jobs:
         run: node .github/resources/generate-test-data.js "$TEST_UPLOAD_DIR"
 
       - name: Setup Azurite with HTTPS
-        run: node .github/resources/setup-azurite.js
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
+        run: node .github/resources/setup-azurite.js
 
       - name: Create test containers
-        run: node .github/resources/create-containers.js test-sharedkey test-anon
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
+        run: node .github/resources/create-containers.js container-sharedkey test-anonymous
 
-      # ── Test 1: SharedKey authentication ─────────────────────────────
-      - name: "Test: Upload with SharedKey credential"
+
+      - name: "SharedKeyCredential: Upload"
         uses: ./
         with:
           account: ${{ env.AZURITE_ACCOUNT }}
-          container: test-sharedkey
+          container: container-sharedkey
           directory: ${{ env.TEST_UPLOAD_DIR }}
         env:
           AZURE_ACCOUNT_KEY: ${{ env.AZURITE_KEY }}
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
-      - name: "Verify: SharedKey uploads"
-        run: node .github/resources/verify-sharedkey-uploads.js test-sharedkey "$TEST_UPLOAD_DIR"
+      - name: "SharedKeyCredential: Verify"
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
+        run: node .github/resources/verify-sharedkey-uploads.js container-sharedkey "$TEST_UPLOAD_DIR"
 
-      # ── Test 2: Anonymous credential (should fail) ───────────────────
-      - name: "Test: Upload with Anonymous credential (expect failure)"
-        id: anon-upload
+
+      - name: "AnonymousCredential: Upload (expect failure)"
+        id: anonymous-upload
         continue-on-error: true
         uses: ./
         with:
           account: ${{ env.AZURITE_ACCOUNT }}
-          container: test-anon
+          container: test-anonymous
           directory: ${{ env.TEST_UPLOAD_DIR }}
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
           # No AZURE_ACCOUNT_KEY → action falls back to AnonymousCredential
 
-      - name: "Verify: Anonymous upload was rejected"
-        run: node .github/resources/verify-anon-upload.js "${{ steps.anon-upload.outcome }}"
+      - name: "AnonymousCredential: Verify"
+        run: node .github/resources/verify-anonymous-upload.js "${{ steps.anonymous-upload.outcome }}"
