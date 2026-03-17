@@ -12,10 +12,10 @@ Commands:
   setup <upload-dir> <container>...      Generate test data, start Azurite HTTPS on port 443, create containers
   teardown                               Kill Azurite, remove /etc/hosts entry, clean up temp files
   verify-sharedkey <container> <dir>     Verify blob list, file content, and yml content-type via Azure SDK
-  verify-anonymous <step-outcome>        Verify anonymous upload was rejected (expects "failure")
+  verify-anonymous <container>           Verify anonymous access to container is rejected
 
 Environment:
-  AZURITE_ACCOUNT   Storage account name (required for setup, teardown, verify-sharedkey)
+  AZURITE_ACCOUNT   Storage account name (required for setup, teardown, verify-sharedkey, verify-anonymous)
   AZURITE_KEY       Storage account key (required for setup, verify-sharedkey)
 EOF
 }
@@ -114,8 +114,9 @@ cmd_verify_sharedkey() {
 }
 
 cmd_verify_anonymous() {
-  local outcome="${1:?Usage: azurite-test.sh verify-anonymous <step-outcome>}"
-  node "$SCRIPT_DIR/verify-anonymous-upload.js" "$outcome"
+  local container="${1:?Usage: azurite-test.sh verify-anonymous <container>}"
+  : "${AZURITE_ACCOUNT:?AZURITE_ACCOUNT must be set}"
+  NODE_TLS_REJECT_UNAUTHORIZED=0 node "$SCRIPT_DIR/verify-anonymous-upload.js" "$container"
 }
 
 case "${1:--h}" in

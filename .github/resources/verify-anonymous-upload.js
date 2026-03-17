@@ -1,12 +1,26 @@
-const outcome = process.argv[2];
-if (!outcome) {
-  console.error("Usage: node verify-anonymous-upload.js <step-outcome>");
-  process.exit(1);
-}
+const { createBlobServiceClient } = require("./blob-helpers.js");
 
-if (outcome === "failure") {
-  console.log("PASS: Anonymous upload correctly failed");
-} else {
-  console.error("FAIL: Anonymous upload should have failed but succeeded");
-  process.exit(1);
-}
+const account = process.env.AZURITE_ACCOUNT;
+const containerName = process.argv[2];
+
+Promise.resolve()
+  .then(async () => {
+    if (!account) throw new Error("AZURITE_ACCOUNT must be set");
+    if (!containerName) throw new Error("Usage: node verify-anonymous-upload.js <container>");
+
+    const svc = createBlobServiceClient(account);
+    const container = svc.getContainerClient(containerName);
+
+    const blobs = [];
+    for await (const b of container.listBlobsFlat()) blobs.push(b.name);
+    throw new Error("Anonymous access should have been rejected but listed " + blobs.length + " blobs");
+  })
+  .catch((err) => {
+    if (err.statusCode === 403 || err.statusCode === 401) {
+      console.log("PASS: Anonymous access correctly rejected:", err.message);
+      return;
+    }
+    console.error("FAIL:", err.message);
+    process.exitCode = 1;
+    throw err;
+  });

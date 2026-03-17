@@ -52,7 +52,6 @@ jobs:
         run: .github/resources/azurite-test.sh verify-sharedkey "$CONTAINER_SHAREDKEY" "$TEST_UPLOAD_DIR"
 
       - name: "AnonymousCredential: Upload (expect failure)"
-        id: anonymous-upload
         continue-on-error: true
         uses: ./
         with:
@@ -63,7 +62,7 @@ jobs:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: "AnonymousCredential: Verify"
-        run: .github/resources/azurite-test.sh verify-anonymous "${{ steps.anonymous-upload.outcome }}"
+        run: .github/resources/azurite-test.sh verify-anonymous "$CONTAINER_ANONYMOUS"
 
       - name: Teardown
         if: always()
