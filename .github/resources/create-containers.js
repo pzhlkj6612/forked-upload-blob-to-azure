@@ -15,5 +15,4 @@ Promise.resolve()
   .catch((err) => {
     console.error(err.message);
     process.exitCode = 1;
-    throw err;
   });

@@ -8,8 +8,8 @@ Promise.resolve()
     if (!account) throw new Error("AZURITE_ACCOUNT must be set");
     if (!containerName) throw new Error("Usage: node verify-anonymous-upload.js <container>");
 
-    const svc = createBlobServiceClient(account);
-    const container = svc.getContainerClient(containerName);
+    const service = createBlobServiceClient(account);
+    const container = service.getContainerClient(containerName);
 
     const blobs = [];
     for await (const b of container.listBlobsFlat()) blobs.push(b.name);
@@ -22,5 +22,4 @@ Promise.resolve()
     }
     console.error("FAIL:", err.message);
     process.exitCode = 1;
-    throw err;
   });

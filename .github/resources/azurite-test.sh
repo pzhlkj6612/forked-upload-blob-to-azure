@@ -39,8 +39,9 @@ YAML
 }
 
 setup_azurite() {
-  : "${AZURITE_ACCOUNT:?AZURITE_ACCOUNT must be set}"
-  : "${AZURITE_KEY:?AZURITE_KEY must be set}"
+  : "${AZURITE_ACCOUNT:?'Missing env: AZURITE_ACCOUNT'}"
+  : "${AZURITE_KEY:?'Missing env: AZURITE_KEY'}"
+
   local hostname="${AZURITE_ACCOUNT}.blob.core.windows.net"
 
   mkdir -p "$AZURITE_TMPDIR"
@@ -53,14 +54,17 @@ setup_azurite() {
     echo "127.0.0.1 ${hostname}" | sudo tee -a /etc/hosts
   fi
 
-  sudo env "PATH=$PATH" "AZURITE_ACCOUNTS=${AZURITE_ACCOUNT}:${AZURITE_KEY}" npx azurite-blob \
-    --blobHost 0.0.0.0 --blobPort 443 \
-    --cert "$AZURITE_TMPDIR/cert.pem" --key "$AZURITE_TMPDIR/key.pem" \
-    --location "$AZURITE_TMPDIR" \
-    --loose --silent &
+  sudo env \
+    "PATH=$PATH" \
+    "AZURITE_ACCOUNTS=${AZURITE_ACCOUNT}:${AZURITE_KEY}" \
+      npx azurite-blob \
+        --blobHost 0.0.0.0 --blobPort 443 \
+        --cert "$AZURITE_TMPDIR/cert.pem" --key "$AZURITE_TMPDIR/key.pem" \
+        --location "$AZURITE_TMPDIR" \
+        --loose --silent &
 
   for i in $(seq 1 10); do
-    if curl -sk -o /dev/null -w '' "https://${hostname}/" 2>/dev/null; then
+    if curl -s -k -o /dev/null "https://${hostname}/" 2>/dev/null; then
       echo "Azurite is ready"
       return 0
     fi
@@ -73,7 +77,8 @@ setup_azurite() {
 }
 
 cmd_setup() {
-  local upload_dir="${1:?Usage: azurite-test.sh setup <upload-dir> <container>...}"
+  local upload_dir="${1:?'Missing arg: upload-dir'}"
+
   shift
   if [ $# -eq 0 ]; then
     echo "Error: at least one container name is required"
@@ -86,7 +91,8 @@ cmd_setup() {
 }
 
 cmd_teardown() {
-  : "${AZURITE_ACCOUNT:?AZURITE_ACCOUNT must be set}"
+  : "${AZURITE_ACCOUNT:?'AZURITE_ACCOUNT must be set'}"
+
   local hostname="${AZURITE_ACCOUNT}.blob.core.windows.net"
 
   if pgrep -f "azurite-blob" > /dev/null 2>&1; then
@@ -106,17 +112,23 @@ cmd_teardown() {
 }
 
 cmd_verify_sharedkey() {
-  local container="${1:?Usage: azurite-test.sh verify-sharedkey <container> <source-dir>}"
-  local source_dir="${2:?Usage: azurite-test.sh verify-sharedkey <container> <source-dir>}"
-  : "${AZURITE_ACCOUNT:?AZURITE_ACCOUNT must be set}"
-  : "${AZURITE_KEY:?AZURITE_KEY must be set}"
-  NODE_TLS_REJECT_UNAUTHORIZED=0 node "$SCRIPT_DIR/verify-sharedkey-uploads.js" "$container" "$source_dir"
+  local container="${1:?'Missing arg: container'}"
+  local source_dir="${2:?'Missing arg: source-dir'}"
+  : "${AZURITE_ACCOUNT:?'Missing env: AZURITE_ACCOUNT'}"
+  : "${AZURITE_KEY:?'Missing env: AZURITE_KEY'}"
+
+  NODE_TLS_REJECT_UNAUTHORIZED=0 \
+    node "$SCRIPT_DIR/verify-sharedkey-uploads.js" \
+      "$container" "$source_dir"
 }
 
 cmd_verify_anonymous() {
-  local container="${1:?Usage: azurite-test.sh verify-anonymous <container>}"
-  : "${AZURITE_ACCOUNT:?AZURITE_ACCOUNT must be set}"
-  NODE_TLS_REJECT_UNAUTHORIZED=0 node "$SCRIPT_DIR/verify-anonymous-upload.js" "$container"
+  local container="${1:?'Missing arg: container'}"
+  : "${AZURITE_ACCOUNT:?'Missing env: AZURITE_ACCOUNT'}"
+
+  NODE_TLS_REJECT_UNAUTHORIZED=0 \
+    node "$SCRIPT_DIR/verify-anonymous-upload.js" \
+      "$container"
 }
 
 case "${1:--h}" in

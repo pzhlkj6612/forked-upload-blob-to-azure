@@ -13,8 +13,8 @@ Promise.resolve()
     if (!containerName || !sourceDir) throw new Error("Usage: node verify-sharedkey-uploads.js <container> <source-dir>");
 
     const expected = walkDir(sourceDir, "", []).sort();
-    const svc = createBlobServiceClient(account, key);
-    const container = svc.getContainerClient(containerName);
+    const service = createBlobServiceClient(account, key);
+    const container = service.getContainerClient(containerName);
 
     const blobs = [];
     for await (const b of container.listBlobsFlat()) blobs.push(b.name);
@@ -45,5 +45,4 @@ Promise.resolve()
   .catch((err) => {
     console.error("FAIL:", err.message);
     process.exitCode = 1;
-    throw err;
   });

@@ -10,6 +10,7 @@ function createBlobServiceClient(account, key) {
   return new BlobServiceClient(url);
 }
 
+// TODO: use `recursive: true` in `fs.readdirSync()` in newer Node.js.
 function walkDir(dir, base, results) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const rel = path.join(base, entry.name);
