@@ -9,8 +9,10 @@ const sourceDir = process.argv[3];
 
 Promise.resolve()
   .then(async () => {
-    if (!account || !key) throw new Error("AZURITE_ACCOUNT and AZURITE_KEY must be set");
-    if (!containerName || !sourceDir) throw new Error("Usage: node verify-sharedkey-uploads.js <container> <source-dir>");
+    if (!account) throw new Error("Missing env: AZURITE_ACCOUNT");
+    if (!key) throw new Error("Missing env: AZURITE_KEY");
+    if (!containerName) throw new Error("Missing arg: container");
+    if (!sourceDir) throw new Error("Missing arg: source-dir");
 
     const expected = walkDir(sourceDir, "", []).sort();
     const service = createBlobServiceClient(account, key);
@@ -19,14 +21,18 @@ Promise.resolve()
     const blobs = [];
     for await (const b of container.listBlobsFlat()) blobs.push(b.name);
     blobs.sort();
+
     if (JSON.stringify(blobs) !== JSON.stringify(expected)) {
-      throw new Error("Blob list mismatch.\nFound: " + JSON.stringify(blobs) + "\nExpected: " + JSON.stringify(expected));
+      throw new Error("Blob list mismatch.\n" +
+        "Found: " + JSON.stringify(blobs) + "\n" +
+        "Expected: " + JSON.stringify(expected));
     }
 
     for (const blobName of blobs) {
       const dl = await container.getBlobClient(blobName).download();
       const chunks = [];
       for await (const c of dl.readableStreamBody) chunks.push(c);
+
       const blobContent = Buffer.concat(chunks).toString();
       const fileContent = fs.readFileSync(path.join(sourceDir, blobName), "utf8");
       if (blobContent !== fileContent) {

@@ -5,8 +5,8 @@ const containerName = process.argv[2];
 
 Promise.resolve()
   .then(async () => {
-    if (!account) throw new Error("AZURITE_ACCOUNT must be set");
-    if (!containerName) throw new Error("Usage: node verify-anonymous-upload.js <container>");
+    if (!account) throw new Error("Missing env: AZURITE_ACCOUNT");
+    if (!containerName) throw new Error("Missing arg: container");
 
     const service = createBlobServiceClient(account);
     const container = service.getContainerClient(containerName);

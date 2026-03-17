@@ -9,14 +9,14 @@ show_help() {
 Usage: azurite-test.sh <command> [args...]
 
 Commands:
-  setup <upload-dir> <container>...      Generate test data, start Azurite HTTPS on port 443, create containers
-  teardown                               Kill Azurite, remove /etc/hosts entry, clean up temp files
-  verify-sharedkey <container> <dir>     Verify blob list, file content, and yml content-type via Azure SDK
-  verify-anonymous <container>           Verify anonymous access to container is rejected
+  setup <upload-dir> <container>...
+  teardown
+  verify-sharedkey <container> <source-dir>
+  verify-anonymous <container>
 
 Environment:
-  AZURITE_ACCOUNT   Storage account name (required for setup, teardown, verify-sharedkey, verify-anonymous)
-  AZURITE_KEY       Storage account key (required for setup, verify-sharedkey)
+  AZURITE_ACCOUNT
+  AZURITE_KEY
 EOF
 }
 
@@ -85,9 +85,13 @@ cmd_setup() {
     show_help
     exit 1
   fi
+
   generate_test_data "$upload_dir"
+
   setup_azurite
-  NODE_TLS_REJECT_UNAUTHORIZED=0 node "$SCRIPT_DIR/create-containers.js" "$@"
+
+  NODE_TLS_REJECT_UNAUTHORIZED=0 \
+    node "$SCRIPT_DIR/create-containers.js" "$@"
 }
 
 cmd_teardown() {
