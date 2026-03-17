@@ -4,9 +4,6 @@ on:
   push:
   pull_request:
 
-permissions:
-  contents: read
-
 env:
   AZURITE_ACCOUNT: storage_account
   AZURITE_KEY: "c3RvcmFnZV9rZXk="
