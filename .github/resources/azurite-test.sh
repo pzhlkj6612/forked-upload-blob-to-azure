@@ -53,7 +53,7 @@ setup_azurite() {
     echo "127.0.0.1 ${hostname}" | sudo tee -a /etc/hosts
   fi
 
-  sudo env "PATH=$PATH" npx azurite-blob \
+  sudo env "PATH=$PATH" "AZURITE_ACCOUNTS=${AZURITE_ACCOUNT}:${AZURITE_KEY}" npx azurite-blob \
     --blobHost 0.0.0.0 --blobPort 443 \
     --cert "$AZURITE_TMPDIR/cert.pem" --key "$AZURITE_TMPDIR/key.pem" \
     --location "$AZURITE_TMPDIR" \
