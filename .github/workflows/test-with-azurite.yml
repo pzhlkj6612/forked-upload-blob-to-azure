@@ -61,6 +61,7 @@ jobs:
               "$TEST_UPLOAD_DIR"
 
       - name: "AnonymousCredential: Upload (expect failure)"
+        id: anonymous_upload_expect_failure
         continue-on-error: true
         uses: ./
         with:
@@ -69,6 +70,14 @@ jobs:
           directory: ${{ env.TEST_UPLOAD_DIR }}
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
+      - name: "AnonymousCredential: Assert expected failure"
+        if: always()
+        run: |
+          if [ "${{ steps.anonymous_upload_expect_failure.outcome }}" = "success" ]; then
+            echo "Expected anonymous upload to fail, but it succeeded."
+            exit 1
+          fi
 
       - name: "AnonymousCredential: Verify"
         run: |
