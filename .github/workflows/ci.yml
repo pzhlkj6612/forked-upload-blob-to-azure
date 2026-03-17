@@ -8,7 +8,7 @@ on:
 
 env:
   AZURITE_ACCOUNT: storage_account
-  AZURITE_KEY: "c3RvcmFnZV9rZXk="
+  AZURITE_KEY: "key="
   TEST_UPLOAD_DIR: /tmp/azurite-test/upload-dir
   CONTAINER_SHAREDKEY: container-sharedkey
   CONTAINER_ANONYMOUS: test-anonymous
