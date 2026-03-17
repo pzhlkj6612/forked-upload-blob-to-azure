@@ -36,7 +36,12 @@ jobs:
         run: pnpm build
 
       - name: Setup
-        run: .github/resources/azurite-test.sh setup "$TEST_UPLOAD_DIR" "$CONTAINER_SHAREDKEY" "$CONTAINER_ANONYMOUS"
+        run: |
+          .github/resources/azurite-test.sh \
+            setup \
+              "$TEST_UPLOAD_DIR" \
+              "$CONTAINER_SHAREDKEY" \
+              "$CONTAINER_ANONYMOUS"
 
       - name: "SharedKeyCredential: Upload"
         uses: ./
@@ -49,7 +54,11 @@ jobs:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: "SharedKeyCredential: Verify"
-        run: .github/resources/azurite-test.sh verify-sharedkey "$CONTAINER_SHAREDKEY" "$TEST_UPLOAD_DIR"
+        run: |
+          .github/resources/azurite-test.sh \
+            verify-sharedkey \
+              "$CONTAINER_SHAREDKEY" \
+              "$TEST_UPLOAD_DIR"
 
       - name: "AnonymousCredential: Upload (expect failure)"
         continue-on-error: true
@@ -62,8 +71,13 @@ jobs:
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: "AnonymousCredential: Verify"
-        run: .github/resources/azurite-test.sh verify-anonymous "$CONTAINER_ANONYMOUS"
+        run: |
+          .github/resources/azurite-test.sh \
+            verify-anonymous \
+              "$CONTAINER_ANONYMOUS"
 
       - name: Teardown
         if: always()
-        run: .github/resources/azurite-test.sh teardown
+        run: |
+          .github/resources/azurite-test.sh \
+            teardown
