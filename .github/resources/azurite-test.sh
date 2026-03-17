@@ -100,7 +100,7 @@ cmd_teardown() {
   fi
 
   if [ -d "$AZURITE_TMPDIR" ]; then
-    rm -rf "$AZURITE_TMPDIR"
+    sudo rm -rf "$AZURITE_TMPDIR"
     echo "Removed $AZURITE_TMPDIR"
   fi
 }
