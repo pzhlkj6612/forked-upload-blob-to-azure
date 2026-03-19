@@ -29,6 +29,8 @@ Promise.resolve()
     }
 
     for (const blobName of blobs) {
+      console.log(`Checking blob "${blobName}"...`);
+
       const dl = await container.getBlobClient(blobName).download();
       const chunks = [];
       for await (const c of dl.readableStreamBody) chunks.push(c);
