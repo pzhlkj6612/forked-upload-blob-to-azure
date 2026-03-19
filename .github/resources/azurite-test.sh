@@ -23,11 +23,14 @@ EOF
 generate_test_data() {
   local dir="$1"
   mkdir -p "$dir/subdir/nested" "$dir/another-subdir"
-  echo "Hello from root level" > "$dir/root-file.txt"
+
+  <<<"Hello from root level at $(date)" tee "$dir/root-file.txt"
+
   cat > "$dir/config.yml" <<'YAML'
 name: test-config
 version: 1
 YAML
+
   echo "File inside a subdirectory" > "$dir/subdir/file-in-subdir.txt"
   echo '{"key": "value", "nested": true}' > "$dir/subdir/nested/deep-file.json"
   cat > "$dir/another-subdir/data.yml" <<'YAML'
@@ -35,6 +38,7 @@ items:
   - name: item1
   - name: item2
 YAML
+
   echo "Test data generated in $dir"
 }
 
