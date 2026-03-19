@@ -1,0 +1,92 @@
+name: Test with Azurite
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  AZURITE_ACCOUNT: storage_account
+  AZURITE_KEY: "storage_key="
+  TEST_UPLOAD_DIR: /tmp/azurite-test/upload-dir
+  CONTAINER_SHAREDKEY: container-sharedkey
+  CONTAINER_ANONYMOUS: test-anonymous
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 18
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Setup
+        run: |
+          .github/resources/azurite-test.sh \
+            setup \
+              "$TEST_UPLOAD_DIR" \
+              "$CONTAINER_SHAREDKEY" \
+              "$CONTAINER_ANONYMOUS"
+
+      - name: "SharedKeyCredential: Upload"
+        uses: ./
+        with:
+          account: ${{ env.AZURITE_ACCOUNT }}
+          container: ${{ env.CONTAINER_SHAREDKEY }}
+          directory: ${{ env.TEST_UPLOAD_DIR }}
+        env:
+          AZURE_ACCOUNT_KEY: ${{ env.AZURITE_KEY }}
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
+      - name: "SharedKeyCredential: Verify"
+        run: |
+          .github/resources/azurite-test.sh \
+            verify-sharedkey \
+              "$CONTAINER_SHAREDKEY" \
+              "$TEST_UPLOAD_DIR"
+
+      - name: "AnonymousCredential: Upload (expect failure)"
+        id: anonymous_upload_expect_failure
+        continue-on-error: true
+        uses: ./
+        with:
+          account: ${{ env.AZURITE_ACCOUNT }}
+          container: ${{ env.CONTAINER_ANONYMOUS }}
+          directory: ${{ env.TEST_UPLOAD_DIR }}
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
+      - name: "AnonymousCredential: Assert expected failure"
+        if: always()
+        run: |
+          if [ "${{ steps.anonymous_upload_expect_failure.outcome }}" = "success" ]; then
+            echo "Expected anonymous upload to fail, but it succeeded."
+            exit 1
+          fi
+
+      - name: "AnonymousCredential: Verify"
+        run: |
+          .github/resources/azurite-test.sh \
+            verify-anonymous \
+              "$CONTAINER_ANONYMOUS"
+
+      - name: Teardown
+        if: always()
+        run: |
+          .github/resources/azurite-test.sh \
+            teardown
