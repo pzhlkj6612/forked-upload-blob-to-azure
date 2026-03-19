@@ -12,9 +12,11 @@
   "description": "Github action to upload blob to azure storage",
   "devDependencies": {
     "@types/node": "~18",
+    "azurite": "^3.35.0",
     "esbuild": "^0.19.10",
     "typescript": "^5.3.3"
   },
+  "packageManager": "pnpm@7.33.7",
   "license": "MIT",
   "main": "dist/index.js",
   "name": "upload-blob-to-azure",
